@@ -255,8 +255,27 @@ namespace osu.Framework.Graphics.UserInterface
                 Dropdown?.ShowItem(tab.Value);
         }
 
+        /// <summary>
+        /// Deselect all tabs.
+        /// </summary>
+        public void ClearSelections() => SelectTab(null);
+
         protected virtual void SelectTab(TabItem<T> tab)
         {
+            // Allow null selection to behave like 'deselect all'
+            if (tab == null)
+            {
+                if (typeof(T).IsEnum)
+                    throw new InvalidOperationException($"Cannot perform a null selection in {nameof(TabControl<T>)} when the type of the TabControl is an enum.");
+
+                if (SelectedTab != null)
+                    SelectedTab.Active.Value = false;
+
+                SelectedTab = null;
+                Current.Value = default(T);
+                return;
+            }
+
             // Only reorder if not pinned and not showing
             if (AutoSort && !tab.IsPresent && !tab.Pinned)
                 performTabSort(tab);
