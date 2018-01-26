@@ -64,6 +64,12 @@ namespace osu.Framework.Graphics.UserInterface
         /// </summary>
         private readonly Dictionary<T, TabItem<T>> tabMap;
 
+        /// <summary>
+        /// Determines the dropdown header's behaviour regarding its interaction with the direction
+        /// of this TabControl's <see cref="TabContainer"/>.
+        /// </summary>
+        public DropdownHeaderBehaviour HeaderBehaviour = DropdownHeaderBehaviour.Fixed;
+
         protected TabControl()
         {
             Dropdown = CreateDropdown();
@@ -112,7 +118,19 @@ namespace osu.Framework.Graphics.UserInterface
             if (Dropdown != null)
             {
                 Dropdown.Header.Height = DrawHeight;
-                TabContainer.Padding = new MarginPadding { Right = Dropdown.Header.Width };
+
+                if (HeaderBehaviour == DropdownHeaderBehaviour.Flowing && (TabContainer.Anchor & Anchor.x2) > 0)
+                {
+                    Dropdown.Header.Anchor = Anchor.TopLeft;
+                    Dropdown.Header.Origin = Anchor.TopLeft;
+                    TabContainer.Padding = new MarginPadding { Left = Dropdown.Header.Width };
+                }
+                else
+                {
+                    Dropdown.Header.Anchor = Anchor.TopRight;
+                    Dropdown.Header.Origin = Anchor.TopRight;
+                    TabContainer.Padding = new MarginPadding { Right = Dropdown.Header.Width };
+                }
             }
         }
 
@@ -302,6 +320,19 @@ namespace osu.Framework.Graphics.UserInterface
                     tabVisibility[child] = isVisible;
                 }
             }
+        }
+
+        public enum DropdownHeaderBehaviour
+        {
+            /// <summary>
+            /// Dropdown header is fixed at the right end of the TabControl.
+            /// </summary>
+            Fixed,
+            /// <summary>
+            /// Dropdown header flows in the direction of the TabContainer, in a similar fashion
+            /// to <see cref="FillFlowContainer"/>'s flow direction determined by its <see cref="Anchor"/>.
+            /// </summary>
+            Flowing,
         }
     }
 }

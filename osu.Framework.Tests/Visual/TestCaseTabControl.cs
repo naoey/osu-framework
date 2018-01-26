@@ -18,6 +18,8 @@ namespace osu.Framework.Tests.Visual
 {
     public class TestCaseTabControl : TestCase
     {
+        public override IReadOnlyList<Type> RequiredTypes => new[] { typeof(TabControl<>) };
+
         public TestCaseTabControl()
         {
             List<KeyValuePair<string, TestEnum>> items = new List<KeyValuePair<string, TestEnum>>();
@@ -31,32 +33,41 @@ namespace osu.Framework.Tests.Visual
             };
             items.AsEnumerable().ForEach(item => simpleTabcontrol.AddItem(item.Value));
 
-            StyledTabControl pinnedAndAutoSort = new StyledTabControl
+            StyledTabControl pinnedAndAutoSort = new StyledRightFlowingTabControl
             {
                 Position = new Vector2(500, 50),
                 Size = new Vector2(200, 30),
-                AutoSort = true
+                AutoSort = true,
             };
+
+            StyledTabControl leftFlowing = new StyledLeftFlowingTabControl
+            {
+                Position = new Vector2(200, 150),
+                Size = new Vector2(200, 30),
+            };
+
             items.GetRange(0, 7).AsEnumerable().ForEach(item => pinnedAndAutoSort.AddItem(item.Value));
+            items.GetRange(0, 7).AsEnumerable().ForEach(item => leftFlowing.AddItem(item.Value));
             pinnedAndAutoSort.PinItem(TestEnum.Test5);
 
             Add(simpleTabcontrol);
             Add(pinnedAndAutoSort);
+            Add(leftFlowing);
 
-            var nextTest = new Func<TestEnum>(() => items.AsEnumerable()
+            var nextTest = new Func<StyledTabControl, TestEnum>(control => items.AsEnumerable()
                                                          .Select(item => item.Value)
-                                                         .FirstOrDefault(test => !pinnedAndAutoSort.Items.Contains(test)));
+                                                         .FirstOrDefault(test => !control.Items.Contains(test)));
 
             Stack<TestEnum> pinned = new Stack<TestEnum>();
 
-            AddStep("AddItem", () =>
+            AddStep("AddItem right flowing", () =>
             {
-                var item = nextTest.Invoke();
+                var item = nextTest.Invoke(pinnedAndAutoSort);
                 if (!pinnedAndAutoSort.Items.Contains(item))
                     pinnedAndAutoSort.AddItem(item);
             });
 
-            AddStep("RemoveItem", () =>
+            AddStep("RemoveItem right flowing", () =>
             {
                 if (pinnedAndAutoSort.Any())
                 {
@@ -64,9 +75,24 @@ namespace osu.Framework.Tests.Visual
                 }
             });
 
+            AddStep("AddItem left flowing", () =>
+            {
+                var item = nextTest.Invoke(leftFlowing);
+                if (!leftFlowing.Items.Contains(item))
+                    leftFlowing.AddItem(item);
+            });
+
+            AddStep("RemoveItem left flowing", () =>
+            {
+                if (leftFlowing.Any())
+                {
+                    leftFlowing.RemoveItem(leftFlowing.Items.Last());
+                }
+            });
+
             AddStep("PinItem", () =>
             {
-                var item = nextTest.Invoke();
+                var item = nextTest.Invoke(pinnedAndAutoSort);
 
                 if (!pinnedAndAutoSort.Items.Contains(item))
                 {
@@ -80,6 +106,32 @@ namespace osu.Framework.Tests.Visual
             {
                 if (pinned.Count > 0) pinnedAndAutoSort.UnpinItem(pinned.Pop());
             });
+        }
+
+        private class StyledLeftFlowingTabControl : StyledTabControl
+        {
+            public StyledLeftFlowingTabControl()
+            {
+                HeaderBehaviour = DropdownHeaderBehaviour.Flowing;
+                TabContainer.Anchor = Anchor.TopLeft;
+                TabContainer.Origin = Anchor.TopLeft;
+            }
+        }
+
+        private class StyledRightFlowingTabControl : StyledTabControl
+        {
+            public StyledRightFlowingTabControl()
+            {
+                HeaderBehaviour = DropdownHeaderBehaviour.Flowing;
+                TabContainer.Anchor = Anchor.TopRight;
+                TabContainer.Origin = Anchor.TopRight;
+            }
+
+            protected override TabItem<TestEnum> CreateTabItem(TestEnum value) => new StyledTabItem(value)
+            {
+                Anchor = Anchor.TopRight,
+                Origin = Anchor.TopRight,
+            };
         }
 
         private class StyledTabControl : TabControl<TestEnum>
